@@ -33,7 +33,7 @@
         import { ARButton } from 'https://unpkg.com/three@0.128.0/examples/jsm/webxr/ARButton.js';
 
         let container, camera, scene, renderer;
-        let controller;
+        let cityGroup;
 
         init();
         animate();
@@ -43,59 +43,66 @@
             document.body.appendChild(container);
 
             scene = new THREE.Scene();
-
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
 
-            // LUCI STILE TRAMONTO GTA (Arancione caldo e riflessi violacei)
-            const ambientLight = new THREE.AmbientLight(0x331144, 1.5); // Luce di base violacea per le ombre
+            // LUCI TRAMONTO GTA
+            const ambientLight = new THREE.AmbientLight(0x442255, 2.0); 
             scene.add(ambientLight);
 
-            const sunLight = new THREE.DirectionalLight(0xffaa44, 3); // Luce del sole arancione intenso
-            sunLight.position.set(5, 8, 2);
+            const sunLight = new THREE.DirectionalLight(0xffaa44, 4.0); 
+            sunLight.position.set(2, 5, 3);
             scene.add(sunLight);
 
-            // Configurazione Rendering
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.xr.enabled = true;
             container.appendChild(renderer.domElement);
 
-            // Attiviamo il bottone AR ufficiale di Three.js nascosto, collegato al nostro bottone personalizzato
             const customBtn = document.getElementById('ar-button');
-            const officialArButton = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
+            const officialArButton = ARButton.createButton(renderer);
             
             customBtn.addEventListener('click', () => {
                 officialArButton.click();
                 customBtn.style.display = 'none';
             });
 
-            // CREAZIONE DELLA CITTÀ (Un gruppo di palazzi stile miniature sul pavimento)
-            const cityGroup = new THREE.Group();
-            cityGroup.position.set(0, -0.5, -1.5); // Posiziona la città un po' più in basso e davanti a te
+            // CREIAMO LA CITTÀ
+            cityGroup = new THREE.Group();
+            
+            // Alziamo leggermente la posizione iniziale per farla vedere subito davanti a te
+            cityGroup.position.set(0, -0.2, -1.0); 
 
-            // Materiale metallico che riflette la luce del tramonto
             const buildingMaterial = new THREE.MeshStandardMaterial({
-                color: 0xfe8c00,
-                metalness: 0.7,
+                color: 0xff7700,
+                metalness: 0.6,
                 roughness: 0.2
             });
 
-            // Generiamo alcuni grattacieli vicini
-            for (let i = 0; i < 15; i++) {
-                const h = Math.random() * 0.6 + 0.2;
-                const geometry = new THREE.BoxGeometry(0.15, h, 0.15);
+            // Palazzi un po' più grandi così si notano subito
+            for (let i = 0; i < 12; i++) {
+                const h = Math.random() * 0.5 + 0.3; // Più alti
+                const geometry = new THREE.BoxGeometry(0.18, h, 0.18);
                 const mesh = new THREE.Mesh(geometry, buildingMaterial);
                 
-                // Distribuzione casuale sul "pavimento" AR
-                mesh.position.x = (Math.random() - 0.5) * 1.2;
-                mesh.position.z = (Math.random() - 0.5) * 1.2;
+                mesh.position.x = (Math.random() - 0.5) * 0.8;
+                mesh.position.z = (Math.random() - 0.5) * 0.8;
                 mesh.position.y = h / 2;
                 
                 cityGroup.add(mesh);
             }
 
             scene.add(cityGroup);
+
+            // Se tocchi lo schermo, sposta la città esattamente davanti a dove stai guardando
+            window.addEventListener('touchstart', () => {
+                const direction = new THREE.Vector3();
+                camera.getWorldDirection(direction);
+                
+                // Piazza la città a 1 metro di distanza da dove punta il telefono
+                cityGroup.position.copy(camera.position).add(direction.multiplyScalar(1));
+                cityGroup.position.y = -0.3; // Altezza stabile vicino al pavimento
+            });
 
             window.addEventListener('resize', onWindowResize);
         }
