@@ -1,36 +1,118 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Massima Città - VR & AR</title>
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.1.0/dist/aframe-extras.min.js"></script>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Città AR - Signor Eccellenza</title>
     <style>
-      /* Stile per il joystick sullo schermo del telefono */
-      .a-js- those-controls {
-        z-index: 9999;
-      }
+        body { margin: 0; overflow: hidden; font-family: sans-serif; }
+        #ar-button {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            text-transform: uppercase;
+            background: linear-gradient(45deg, #ff5e62, #ff9966);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 1000;
+        }
     </style>
-  </head>
-  <body>
-    <a-scene webxr="optionalFeatures: hit-test, local-floor;">
-      
-      <a-sky color="#87CEEB"></a-sky>
-      <a-plane position="0 0 0" rotation="-90 0 0" width="100" height="100" color="#7CFC00"></a-plane>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
 
-      <a-box position="0 2 -5" width="4" height="4" depth="4" color="#FF6347"></a-box>
-      <a-cone position="0 5 -5" radius-bottom="3" height="2" color="#8B0000"></a-cone>
-      
-      <a-box position="-6 5 -10" width="3" height="10" depth="3" color="#4682B4"></a-box>
-      
-      <a-box position="6 4 -8" width="2" height="8" depth="2" color="#FFD700"></a-box>
+    <button id="ar-button">Avvia AR Tramonto</button>
 
-      <a-entity id="rig" movement-controls="controls: checkpoint, gamepad, trackpad, keyboard, nipple;" position="0 0 0">
-        <a-entity camera position="0 1.6 0" look-controls>
-          <a-cursor color="#FF0000" scale="0.5 0.5 0.5"></a-cursor>
-        </a-entity>
-      </a-entity>
+    <script type="module">
+        import { ARButton } from 'https://unpkg.com/three@0.128.0/examples/jsm/webxr/ARButton.js';
 
-    </a-scene>
-  </body>
+        let container, camera, scene, renderer;
+        let controller;
+
+        init();
+        animate();
+
+        function init() {
+            container = document.createElement('div');
+            document.body.appendChild(container);
+
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+
+            // LUCI STILE TRAMONTO GTA (Arancione caldo e riflessi violacei)
+            const ambientLight = new THREE.AmbientLight(0x331144, 1.5); // Luce di base violacea per le ombre
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xffaa44, 3); // Luce del sole arancione intenso
+            sunLight.position.set(5, 8, 2);
+            scene.add(sunLight);
+
+            // Configurazione Rendering
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.xr.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // Attiviamo il bottone AR ufficiale di Three.js nascosto, collegato al nostro bottone personalizzato
+            const customBtn = document.getElementById('ar-button');
+            const officialArButton = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
+            
+            customBtn.addEventListener('click', () => {
+                officialArButton.click();
+                customBtn.style.display = 'none';
+            });
+
+            // CREAZIONE DELLA CITTÀ (Un gruppo di palazzi stile miniature sul pavimento)
+            const cityGroup = new THREE.Group();
+            cityGroup.position.set(0, -0.5, -1.5); // Posiziona la città un po' più in basso e davanti a te
+
+            // Materiale metallico che riflette la luce del tramonto
+            const buildingMaterial = new THREE.MeshStandardMaterial({
+                color: 0xfe8c00,
+                metalness: 0.7,
+                roughness: 0.2
+            });
+
+            // Generiamo alcuni grattacieli vicini
+            for (let i = 0; i < 15; i++) {
+                const h = Math.random() * 0.6 + 0.2;
+                const geometry = new THREE.BoxGeometry(0.15, h, 0.15);
+                const mesh = new THREE.Mesh(geometry, buildingMaterial);
+                
+                // Distribuzione casuale sul "pavimento" AR
+                mesh.position.x = (Math.random() - 0.5) * 1.2;
+                mesh.position.z = (Math.random() - 0.5) * 1.2;
+                mesh.position.y = h / 2;
+                
+                cityGroup.add(mesh);
+            }
+
+            scene.add(cityGroup);
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            renderer.setAnimationLoop(render);
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
 </html>
